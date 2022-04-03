@@ -40,7 +40,7 @@ func (s *Sub) StartConsumer(ctx context.Context) error {
 		return err
 	}
 
-	s.svc.process(ctx, delivery)
+	s.svc.Process(ctx, delivery)
 
 	return nil
 }

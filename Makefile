@@ -1,5 +1,5 @@
 lint: fmt
-	golangci-lint run --enable-all --fix
+	golangci-lint run --fix
 
 test:
 	go clean -testcache

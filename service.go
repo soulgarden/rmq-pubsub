@@ -7,7 +7,7 @@ import (
 )
 
 type Service interface {
-	process(
+	Process(
 		ctx context.Context,
 		delivery <-chan amqp.Delivery,
 	)

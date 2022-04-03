@@ -20,7 +20,7 @@ func NewRmq(rmq *rabbitmq.Connection, cfg *Cfg, logger *zerolog.Logger) *Rmq {
 	return &Rmq{rmq: rmq, cfg: cfg, logger: logger}
 }
 
-func (p *Rmq) OpenChannel() (*rabbitmq.Channel, error) {
+func (p *Rmq) OpenChannel() (Channel, error) {
 	sendCh, err := p.rmq.Channel()
 
 	p.logger.Err(err).Msg("open conn channel")
@@ -28,7 +28,7 @@ func (p *Rmq) OpenChannel() (*rabbitmq.Channel, error) {
 	return sendCh, err
 }
 
-func (p *Rmq) QueueDeclare(sendCh *rabbitmq.Channel) error {
+func (p *Rmq) QueueDeclare(sendCh Channel) error {
 	_, err := sendCh.QueueDeclare(p.cfg.QueueName, true, false, false, false, nil)
 
 	p.logger.Err(err).Str("name", p.cfg.QueueName).Msg("declare queue")

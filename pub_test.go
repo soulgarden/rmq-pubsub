@@ -2,7 +2,6 @@ package pubsub
 
 import (
 	"context"
-	"crypto/tls"
 	"errors"
 	"testing"
 
@@ -14,30 +13,52 @@ import (
 type FakeChannel struct {
 	Error           error
 	PublishedNumber int64
+	ch              chan amqp.Delivery
+}
+
+func NewFakeChannel() *FakeChannel {
+	return &FakeChannel{
+		ch: make(chan amqp.Delivery, 1),
+	}
 }
 
 func (f *FakeChannel) Publish(exchange, key string, mandatory, immediate bool, msg amqp.Publishing) error {
+	if f.Error == nil {
+		f.ch <- amqp.Delivery{}
+	}
+
 	return f.Error
 }
 
-func (f *FakeChannel) Qos(prefetchCount, prefetchSize int, global bool) error {
-	return nil
+func (f *FakeChannel) Qos(prefetchCount, prefetchSize int, global bool) error { return nil }
+
+func (f *FakeChannel) Consume(
+	queue, consumer string,
+	autoAck, exclusive, noLocal, noWait bool,
+	args amqp.Table,
+) (<-chan amqp.Delivery, error) {
+	return f.ch, nil
 }
 
-func (f *FakeChannel) Consume(queue, consumer string, autoAck, exclusive, noLocal, noWait bool, args amqp.Table) (<-chan amqp.Delivery, error) {
-	return nil, nil
+func (f *FakeChannel) QueueDeclare(
+	name string,
+	durable bool,
+	autoDelete bool,
+	exclusive bool,
+	noWait bool,
+	args amqp.Table,
+) (amqp.Queue, error) {
+	return amqp.Queue{}, nil
 }
 
 type FakeRmq struct {
-	Ch *FakeChannel
+	ch *FakeChannel
 }
 
-func (f *FakeRmq) OpenChannel() (Channel, error) {
-	if f.Ch == nil {
-		f.Ch = &FakeChannel{}
-	}
-	return f.Ch, nil
-}
+func NewFakeRmq() *FakeRmq { return &FakeRmq{ch: NewFakeChannel()} }
+
+func (f *FakeRmq) OpenChannel() (Channel, error) { return f.ch, nil }
+
 func (f *FakeRmq) QueueDeclare(sendCh Channel) error { return nil }
 
 func TestPub_sendToQueue(t *testing.T) {
@@ -69,9 +90,7 @@ func TestPub_sendToQueue(t *testing.T) {
 				events:       make(chan interface{}),
 				conn: &rabbitmq.Connection{
 					Connection: &amqp.Connection{
-						Config: amqp.Config{
-							TLSClientConfig: &tls.Config{},
-						},
+						Config: amqp.Config{},
 					},
 				},
 				cfg:    NewMinimalCfg("test"),
@@ -79,7 +98,7 @@ func TestPub_sendToQueue(t *testing.T) {
 			},
 			args: args{
 				e:      nil,
-				sendCh: &FakeChannel{},
+				sendCh: NewFakeChannel(),
 			},
 			wantErr: false,
 		},
@@ -90,9 +109,7 @@ func TestPub_sendToQueue(t *testing.T) {
 				events:       make(chan interface{}),
 				conn: &rabbitmq.Connection{
 					Connection: &amqp.Connection{
-						Config: amqp.Config{
-							TLSClientConfig: &tls.Config{},
-						},
+						Config: amqp.Config{},
 					},
 				},
 				cfg:    NewMinimalCfg("test"),
@@ -146,6 +163,7 @@ func TestPub_StartPublisher(t *testing.T) {
 	type args struct {
 		ctx context.Context
 	}
+
 	tests := []struct {
 		name         string
 		fields       fields
@@ -160,12 +178,10 @@ func TestPub_StartPublisher(t *testing.T) {
 				events:       make(chan interface{}),
 				conn: &rabbitmq.Connection{
 					Connection: &amqp.Connection{
-						Config: amqp.Config{
-							TLSClientConfig: &tls.Config{},
-						},
+						Config: amqp.Config{},
 					},
 				},
-				rmq:    &FakeRmq{},
+				rmq:    NewFakeRmq(),
 				cfg:    NewMinimalCfg("test"),
 				logger: &zerolog.Logger{},
 			},
@@ -183,14 +199,7 @@ func TestPub_StartPublisher(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
-			p := &Pub{
-				errorsNumber: tt.fields.errorsNumber,
-				events:       tt.fields.events,
-				conn:         tt.fields.conn,
-				rmq:          tt.fields.rmq,
-				cfg:          tt.fields.cfg,
-				logger:       tt.fields.logger,
-			}
+			p := NewPub(tt.fields.conn, tt.fields.cfg, tt.fields.rmq, tt.fields.logger)
 
 			ctx, cancel := context.WithCancel(tt.args.ctx)
 			defer cancel()
