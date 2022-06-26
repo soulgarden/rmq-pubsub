@@ -1,16 +1,18 @@
 package pubsub
 
 type Cfg struct {
-	QueueName       string
-	QueueLen        int
-	ErrorsThreshold int64
-	PrefetchCount   int
-	Durable         bool
-	Exclusive       bool
+	ExchangeName    string `json:"exchange_name"`
+	QueueName       string `json:"queue_name"`
+	QueueLen        int    `json:"queue_len"`
+	ErrorsThreshold int64  `json:"errors_threshold"`
+	PrefetchCount   int    `json:"prefetch_count"`
+	Durable         bool   `json:"durable"`
+	Exclusive       bool   `json:"exclusive"`
 }
 
-func NewMinimalCfg(queueName string) *Cfg {
+func NewMinimalCfg(exchangeName, queueName string) *Cfg {
 	return &Cfg{
+		ExchangeName:    exchangeName,
 		QueueName:       queueName,
 		QueueLen:        DefaultQueueLen,
 		ErrorsThreshold: DefaultErrorsThreshold,

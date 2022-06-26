@@ -6,4 +6,8 @@ Convenient RabbitMQ simple publisher and subscriber with circuit breaker and gra
 
 ### Examples
 
-See examples directory
+See [examples](https://github.com/soulgarden/rmq-pubsub/tree/master/examples) directory
+
+### Test
+
+Run `make test` in console

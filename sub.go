@@ -35,7 +35,7 @@ func NewSub(
 func (s *Sub) StartConsumer(ctx context.Context) error {
 	delivery, err := s.GetDeliveryChannel()
 	if err != nil {
-		s.logger.Err(err).Msg("consume")
+		s.logger.Err(err).Msg("get delivery channel")
 
 		return err
 	}
@@ -60,6 +60,25 @@ func (s *Sub) GetDeliveryChannel() (<-chan amqp.Delivery, error) {
 		return nil, err
 	}
 
+	if s.cfg.ExchangeName != "" {
+		err = s.rmq.ExchangeDeclare(consumeCh)
+		if err != nil {
+			s.logger.Err(err).Str("name", s.cfg.ExchangeName).Msg("declare exchange")
+
+			return nil, err
+		}
+
+		err = s.rmq.QueueBind(consumeCh)
+		if err != nil {
+			s.logger.Err(err).
+				Str("queue name", s.cfg.ExchangeName).
+				Str("exchange name", s.cfg.ExchangeName).
+				Msg("declare exchange")
+
+			return nil, err
+		}
+	}
+
 	_ = consumeCh.Qos(s.cfg.PrefetchCount, 0, false)
 
 	delivery, err := consumeCh.Consume(
@@ -72,7 +91,7 @@ func (s *Sub) GetDeliveryChannel() (<-chan amqp.Delivery, error) {
 		nil,
 	)
 	if err != nil {
-		s.logger.Err(err).Msg("start consume")
+		s.logger.Err(err).Str("name", s.cfg.QueueName).Msg("start consume")
 
 		return nil, err
 	}

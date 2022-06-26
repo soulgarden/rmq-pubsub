@@ -54,7 +54,7 @@ func TestSub_StartConsumer(t *testing.T) {
 				},
 				svc:    &FakeService{},
 				rmq:    NewFakeRmq(),
-				cfg:    NewMinimalCfg("test"),
+				cfg:    NewMinimalCfg("exchange", "queue"),
 				logger: &zerolog.Logger{},
 			},
 			args: args{

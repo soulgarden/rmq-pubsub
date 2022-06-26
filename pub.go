@@ -2,7 +2,6 @@ package pubsub
 
 import (
 	"context"
-	"encoding/json"
 	"sync/atomic"
 
 	"github.com/isayme/go-amqp-reconnect/rabbitmq"
@@ -12,7 +11,7 @@ import (
 
 type Pub struct {
 	errorsNumber int64
-	events       chan interface{}
+	events       chan amqp.Publishing
 	conn         *rabbitmq.Connection
 	rmq          Rmqer
 	cfg          *Cfg
@@ -22,7 +21,7 @@ type Pub struct {
 func NewPub(conn *rabbitmq.Connection, cfg *Cfg, rmq Rmqer, logger *zerolog.Logger) *Pub {
 	return &Pub{
 		errorsNumber: 0,
-		events:       make(chan interface{}, cfg.QueueLen),
+		events:       make(chan amqp.Publishing, cfg.QueueLen),
 		conn:         conn,
 		rmq:          rmq,
 		cfg:          cfg,
@@ -30,23 +29,34 @@ func NewPub(conn *rabbitmq.Connection, cfg *Cfg, rmq Rmqer, logger *zerolog.Logg
 	}
 }
 
-func (p *Pub) Publish(e interface{}) {
+func (p *Pub) Publish(e amqp.Publishing) {
 	p.events <- e
 }
 
 func (p *Pub) StartPublisher(ctx context.Context) error {
 	sendCh, err := p.rmq.OpenChannel()
 	if err != nil {
-		p.logger.Err(err).Msg("open conn channel")
+		p.logger.Err(err).Msg("open channel")
 
 		return err
 	}
 
-	err = p.rmq.QueueDeclare(sendCh)
-	if err != nil {
-		p.logger.Err(err).Str("name", p.cfg.QueueName).Msg("declare queue")
+	if p.cfg.ExchangeName != "" {
+		err = p.rmq.ExchangeDeclare(sendCh)
+		if err != nil {
+			p.logger.Err(err).Str("name", p.cfg.ExchangeName).Msg("declare exchange")
 
-		return err
+			return err
+		}
+	}
+
+	if p.cfg.QueueName != "" {
+		err = p.rmq.QueueDeclare(sendCh)
+		if err != nil {
+			p.logger.Err(err).Str("name", p.cfg.QueueName).Msg("declare queue")
+
+			return err
+		}
 	}
 
 	for {
@@ -80,25 +90,12 @@ func (p *Pub) dequeue() interface{} {
 	return <-p.events
 }
 
-func (p *Pub) sendToQueue(e interface{}, sendCh Channel) error {
-	body, err := json.Marshal(e)
-	if err != nil {
-		p.logger.Err(err).Interface("event", e).Msg("marshall event")
-		p.events <- e
-
-		return err
-	}
-
-	err = sendCh.Publish("", p.cfg.QueueName, false, false, amqp.Publishing{
-		ContentType:  "application/json",
-		Body:         body,
-		DeliveryMode: amqp.Persistent,
-	})
-
+func (p *Pub) sendToQueue(e amqp.Publishing, sendCh Channel) error {
+	err := sendCh.Publish(p.cfg.ExchangeName, p.cfg.QueueName, false, false, e)
 	if err != nil {
 		atomic.AddInt64(&p.errorsNumber, 1)
 
-		p.logger.Err(err).Bytes("event", body).Msg("publish event")
+		p.logger.Err(err).Str("id", e.MessageId).Msg("publish event")
 		p.events <- e
 
 		return err

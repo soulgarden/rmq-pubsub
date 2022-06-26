@@ -4,10 +4,16 @@ issues:
       linters:
         - funlen
         - dupl
-        - testpackage
-        - goerr113
-linters:
+    - path: /
+      linters:
+        - gci
+        - gofumpt
+        - exhaustivestruct
+        - exhaustruct
+        - wrapcheck
+        - tagliatelle
+        - dupl
+        - varnamelen
+        - nonamedreturns
   enable-all: true
-  disable:
-    - wrapcheck
-    - exhaustivestruct
+

@@ -51,29 +51,38 @@ func (f *FakeChannel) QueueDeclare(
 	return amqp.Queue{}, nil
 }
 
+func (f *FakeChannel) ExchangeDeclare(name, kind string, durable, autoDelete, internal, noWait bool, args amqp.Table) error {
+	return nil
+}
+
+func (f *FakeChannel) QueueBind(name, key, exchange string, noWait bool, args amqp.Table) error {
+	return nil
+}
+
 type FakeRmq struct {
 	ch *FakeChannel
 }
 
 func NewFakeRmq() *FakeRmq { return &FakeRmq{ch: NewFakeChannel()} }
 
-func (f *FakeRmq) OpenChannel() (Channel, error) { return f.ch, nil }
-
-func (f *FakeRmq) QueueDeclare(sendCh Channel) error { return nil }
+func (f *FakeRmq) OpenChannel() (Channel, error)        { return f.ch, nil }
+func (f *FakeRmq) QueueDeclare(sendCh Channel) error    { return nil }
+func (f *FakeRmq) ExchangeDeclare(sendCh Channel) error { return nil }
+func (f *FakeRmq) QueueBind(sendCh Channel) error       { return nil }
 
 func TestPub_sendToQueue(t *testing.T) {
 	t.Parallel()
 
 	type fields struct {
 		errorsNumber int64
-		events       chan interface{}
+		events       chan amqp.Publishing
 		conn         *rabbitmq.Connection
 		cfg          *Cfg
 		logger       *zerolog.Logger
 	}
 
 	type args struct {
-		e      interface{}
+		e      amqp.Publishing
 		sendCh Channel
 	}
 
@@ -87,17 +96,17 @@ func TestPub_sendToQueue(t *testing.T) {
 			name: "success",
 			fields: fields{
 				errorsNumber: 0,
-				events:       make(chan interface{}),
+				events:       make(chan amqp.Publishing),
 				conn: &rabbitmq.Connection{
 					Connection: &amqp.Connection{
 						Config: amqp.Config{},
 					},
 				},
-				cfg:    NewMinimalCfg("test"),
+				cfg:    NewMinimalCfg("exchange", "queue"),
 				logger: &zerolog.Logger{},
 			},
 			args: args{
-				e:      nil,
+				e:      amqp.Publishing{},
 				sendCh: NewFakeChannel(),
 			},
 			wantErr: false,
@@ -106,17 +115,17 @@ func TestPub_sendToQueue(t *testing.T) {
 			name: "fail",
 			fields: fields{
 				errorsNumber: 0,
-				events:       make(chan interface{}),
+				events:       make(chan amqp.Publishing),
 				conn: &rabbitmq.Connection{
 					Connection: &amqp.Connection{
 						Config: amqp.Config{},
 					},
 				},
-				cfg:    NewMinimalCfg("test"),
+				cfg:    NewMinimalCfg("exchange", "queue"),
 				logger: &zerolog.Logger{},
 			},
 			args: args{
-				e:      nil,
+				e:      amqp.Publishing{},
 				sendCh: &FakeChannel{Error: errors.New("test error")},
 			},
 			wantErr: true,
@@ -182,7 +191,7 @@ func TestPub_StartPublisher(t *testing.T) {
 					},
 				},
 				rmq:    NewFakeRmq(),
-				cfg:    NewMinimalCfg("test"),
+				cfg:    NewMinimalCfg("exchange", "queue"),
 				logger: &zerolog.Logger{},
 			},
 			args: args{
@@ -206,7 +215,7 @@ func TestPub_StartPublisher(t *testing.T) {
 
 			if tt.wantShutdown {
 				go func() {
-					p.Publish(struct{}{})
+					p.Publish(amqp.Publishing{})
 					cancel()
 				}()
 			}

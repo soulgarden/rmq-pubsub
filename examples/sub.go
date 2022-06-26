@@ -1,3 +1,5 @@
+//go:build ignore
+
 package examples
 
 import (
@@ -30,7 +32,9 @@ func (f *Service) Process(
 }
 
 func runSub() {
-	cfg := pubsub.NewMinimalCfg("queue_name")
+	// use non-empty exchange name and non-empty queue name to bind queue on exchange
+	// use non-empty exchange name and empty queue name to bind auto-generated auto-deleted queue on exchange
+	cfg := pubsub.NewMinimalCfg("exchange_name", "")
 
 	logger := zerolog.New(os.Stdout)
 
@@ -43,12 +47,12 @@ func runSub() {
 		os.Exit(1)
 	}
 
-	pub := pubsub.NewSub(conn, &Service{}, pubsub.NewRmq(conn, cfg, &logger), cfg, &logger)
+	sub := pubsub.NewSub(conn, &Service{}, pubsub.NewRmq(conn, cfg, &logger), cfg, &logger)
 
 	g, ctx := errgroup.WithContext(context.Background())
 
 	g.Go(func() error {
-		return pub.StartConsumer(ctx)
+		return sub.StartConsumer(ctx)
 	})
 
 	if err := g.Wait(); err != nil {
