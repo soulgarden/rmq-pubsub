@@ -138,7 +138,7 @@ func TestPub_sendToQueue(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
-			p := &Pub{
+			p := &pub{
 				errorsNumber: tt.fields.errorsNumber,
 				events:       tt.fields.events,
 				conn:         tt.fields.conn,

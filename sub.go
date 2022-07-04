@@ -8,7 +8,12 @@ import (
 	"github.com/streadway/amqp"
 )
 
-type Sub struct {
+type Sub interface {
+	StartConsumer(ctx context.Context) error
+	GetDeliveryChannel() (<-chan amqp.Delivery, error)
+}
+
+type sub struct {
 	conn   *rabbitmq.Connection
 	svc    Service
 	rmq    Rmqer
@@ -22,8 +27,8 @@ func NewSub(
 	rmq Rmqer,
 	cfg *Cfg,
 	logger *zerolog.Logger,
-) *Sub {
-	return &Sub{
+) *sub {
+	return &sub{
 		conn:   conn,
 		svc:    svc,
 		rmq:    rmq,
@@ -32,7 +37,7 @@ func NewSub(
 	}
 }
 
-func (s *Sub) StartConsumer(ctx context.Context) error {
+func (s *sub) StartConsumer(ctx context.Context) error {
 	delivery, err := s.GetDeliveryChannel()
 	if err != nil {
 		s.logger.Err(err).Msg("get delivery channel")
@@ -45,7 +50,7 @@ func (s *Sub) StartConsumer(ctx context.Context) error {
 	return nil
 }
 
-func (s *Sub) GetDeliveryChannel() (<-chan amqp.Delivery, error) {
+func (s *sub) GetDeliveryChannel() (<-chan amqp.Delivery, error) {
 	consumeCh, err := s.rmq.OpenChannel()
 	if err != nil {
 		s.logger.Err(err).Msg("open conn channel")

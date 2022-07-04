@@ -9,7 +9,12 @@ import (
 	"github.com/streadway/amqp"
 )
 
-type Pub struct {
+type Pub interface {
+	Publish(e amqp.Publishing)
+	StartPublisher(ctx context.Context) error
+}
+
+type pub struct {
 	errorsNumber int64
 	events       chan amqp.Publishing
 	conn         *rabbitmq.Connection
@@ -18,8 +23,8 @@ type Pub struct {
 	logger       *zerolog.Logger
 }
 
-func NewPub(conn *rabbitmq.Connection, cfg *Cfg, rmq Rmqer, logger *zerolog.Logger) *Pub {
-	return &Pub{
+func NewPub(conn *rabbitmq.Connection, cfg *Cfg, rmq Rmqer, logger *zerolog.Logger) *pub {
+	return &pub{
 		errorsNumber: 0,
 		events:       make(chan amqp.Publishing, cfg.QueueLen),
 		conn:         conn,
@@ -29,11 +34,11 @@ func NewPub(conn *rabbitmq.Connection, cfg *Cfg, rmq Rmqer, logger *zerolog.Logg
 	}
 }
 
-func (p *Pub) Publish(e amqp.Publishing) {
+func (p *pub) Publish(e amqp.Publishing) {
 	p.events <- e
 }
 
-func (p *Pub) StartPublisher(ctx context.Context) error {
+func (p *pub) StartPublisher(ctx context.Context) error {
 	sendCh, err := p.rmq.OpenChannel()
 	if err != nil {
 		p.logger.Err(err).Msg("open channel")
@@ -86,11 +91,11 @@ func (p *Pub) StartPublisher(ctx context.Context) error {
 	}
 }
 
-func (p *Pub) dequeue() interface{} {
+func (p *pub) dequeue() interface{} {
 	return <-p.events
 }
 
-func (p *Pub) sendToQueue(e amqp.Publishing, sendCh Channel) error {
+func (p *pub) sendToQueue(e amqp.Publishing, sendCh Channel) error {
 	err := sendCh.Publish(p.cfg.ExchangeName, p.cfg.QueueName, false, false, e)
 	if err != nil {
 		atomic.AddInt64(&p.errorsNumber, 1)
