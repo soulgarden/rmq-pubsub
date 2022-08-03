@@ -38,7 +38,7 @@ func (r *Rmq) QueueDeclare(ch Channel) error {
 		autoDelete = true
 	}
 
-	_, err := ch.QueueDeclare(r.cfg.QueueName, true, autoDelete, false, false, nil)
+	_, err := ch.QueueDeclare(r.cfg.QueueName, r.cfg.Durable, autoDelete, false, false, nil)
 
 	r.logger.Err(err).Str("name", r.cfg.QueueName).Msg("declare queue")
 
@@ -46,7 +46,7 @@ func (r *Rmq) QueueDeclare(ch Channel) error {
 }
 
 func (r *Rmq) ExchangeDeclare(ch Channel) error {
-	err := ch.ExchangeDeclare(r.cfg.ExchangeName, amqp.ExchangeFanout, true, false, false, false, nil)
+	err := ch.ExchangeDeclare(r.cfg.ExchangeName, amqp.ExchangeFanout, r.cfg.Durable, false, false, false, nil)
 
 	r.logger.Err(err).Str("name", r.cfg.ExchangeName).Msg("declare exchange")
 
