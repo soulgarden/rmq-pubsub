@@ -45,9 +45,7 @@ func (s *sub) StartConsumer(ctx context.Context) error {
 		return err
 	}
 
-	s.svc.Process(ctx, delivery)
-
-	return nil
+	return s.svc.Process(ctx, delivery)
 }
 
 func (s *sub) GetDeliveryChannel() (<-chan amqp.Delivery, error) {

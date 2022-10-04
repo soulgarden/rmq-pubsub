@@ -18,7 +18,7 @@ type Service struct{}
 func (f *Service) Process(
 	ctx context.Context,
 	delivery <-chan amqp.Delivery,
-) {
+) error {
 	select {
 	case msg := <-delivery:
 		// process
@@ -27,7 +27,7 @@ func (f *Service) Process(
 
 		// or _ = msg.Reject(true)
 	case <-ctx.Done():
-		return
+		return ctx.Err()
 	}
 }
 

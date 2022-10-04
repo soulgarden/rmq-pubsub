@@ -10,5 +10,5 @@ type Service interface {
 	Process(
 		ctx context.Context,
 		delivery <-chan amqp.Delivery,
-	)
+	) error
 }

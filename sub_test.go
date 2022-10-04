@@ -14,13 +14,15 @@ type FakeService struct{}
 func (f *FakeService) Process(
 	ctx context.Context,
 	delivery <-chan amqp.Delivery,
-) {
+) error {
 	select {
 	case msg := <-delivery:
 		_ = msg.Ack(false)
 	case <-ctx.Done():
-		return
+		return ctx.Err()
 	}
+
+	return nil
 }
 
 func TestSub_StartConsumer(t *testing.T) {
