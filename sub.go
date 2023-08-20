@@ -3,9 +3,9 @@ package pubsub
 import (
 	"context"
 
-	"github.com/isayme/go-amqp-reconnect/rabbitmq"
+	amqp "github.com/rabbitmq/amqp091-go"
 	"github.com/rs/zerolog"
-	"github.com/streadway/amqp"
+	"github.com/soulgarden/go-amqp-reconnect/rabbitmq"
 )
 
 type Sub interface {

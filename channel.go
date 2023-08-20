@@ -1,6 +1,6 @@
 package pubsub
 
-import "github.com/streadway/amqp"
+import amqp "github.com/rabbitmq/amqp091-go"
 
 type Channel interface {
 	Publish(exchange, key string, mandatory, immediate bool, msg amqp.Publishing) error

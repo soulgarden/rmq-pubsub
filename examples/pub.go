@@ -5,15 +5,16 @@ package examples
 import (
 	"context"
 	"encoding/json"
-	"github.com/streadway/amqp"
 	"os"
 	"time"
 
-	"github.com/isayme/go-amqp-reconnect/rabbitmq"
+	amqp "github.com/rabbitmq/amqp091-go"
 	"github.com/rs/zerolog"
-	uuid "github.com/satori/go.uuid"
-	pubsub "github.com/soulgarden/rmq-pubsub"
 	"golang.org/x/sync/errgroup"
+
+	uuid "github.com/satori/go.uuid"
+	"github.com/soulgarden/go-amqp-reconnect/rabbitmq"
+	pubsub "github.com/soulgarden/rmq-pubsub"
 )
 
 type Event struct {
