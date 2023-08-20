@@ -4,10 +4,9 @@ import (
 	"context"
 	"sync/atomic"
 
+	amqp "github.com/rabbitmq/amqp091-go"
 	"github.com/rs/zerolog"
 	"github.com/soulgarden/go-amqp-reconnect/rabbitmq"
-
-	amqp "github.com/rabbitmq/amqp091-go"
 )
 
 type Pub interface {

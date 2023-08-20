@@ -1,5 +1,5 @@
-lint: fmt
-	golangci-lint run --fix
+lint: goimports fmt
+	golangci-lint run
 
 test:
 	go clean -testcache
@@ -7,3 +7,6 @@ test:
 
 fmt:
 	gofmt -w .
+
+goimports:
+	goimports -w .
