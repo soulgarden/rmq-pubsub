@@ -1,6 +1,8 @@
 module github.com/soulgarden/rmq-pubsub
 
-go 1.21.5
+go 1.21.0
+
+toolchain go1.21.5
 
 retract v0.0.2
 
